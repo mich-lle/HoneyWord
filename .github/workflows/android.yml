@@ -17,31 +17,48 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Install SDK components
+      - name: Install SDK components (bulletproof)
         run: |
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "cmdline-tools;latest" "platforms;android-34"
-          # Try preferred build-tools, then fallback
-          (sdkmanager --install "build-tools;34.0.0") || sdkmanager --install "build-tools;33.0.2"
-          # Create a Gradle wrapper pinned to 8.4 (works with AGP 8.2.2)
+          for v in 34.0.1 34.0.0 33.0.2; do
+            if sdkmanager --install "build-tools;$v"; then
+              echo "Using build-tools $v"
+              echo "BUILD_TOOLS=$v" >> $GITHUB_ENV
+              break
+            fi
+          done
+
+      # Pin Gradle to match AGP 8.2.x
       - name: Create Gradle wrapper (8.4)
         run: gradle wrapper --gradle-version 8.4
 
       - name: Build Debug APK (verbose)
-        run: ./gradlew :app:assembleDebug --stacktrace --info | tee build.log
+        run: ./gradlew :app:assembleDebug --stacktrace --info --no-daemon | tee build.log
         shell: bash
+
+      - name: Show outputs tree
+        if: always()
+        run: |
+          echo "=== app/build/outputs (tree) ==="
+          ls -R app/build/outputs || true
+          echo "=== find any *.apk ==="
+          find app -type f -name "*.apk" -print || true
 
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-        
           name: build-log
           path: build.log
 
-      - name: Upload APK
+      - name: Upload APKs (any location)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Honeyword-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: apks
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/**/*.apk
+            **/*.apk
+          if-no-files-found: warn
