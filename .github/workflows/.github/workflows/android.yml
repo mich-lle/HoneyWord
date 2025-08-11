@@ -15,14 +15,22 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Install a specific Gradle version and DISABLE caching
+      # Install Android SDK + required components
+      - uses: android-actions/setup-android@v3
+
+      - name: Install SDK components
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | sdkmanager --licenses
+
+      # Use Gradle 8.6 with caching disabled
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "8.6"
           cache-disabled: true
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug
+        run: gradle :app:assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
