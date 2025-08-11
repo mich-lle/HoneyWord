@@ -20,9 +20,10 @@ jobs:
       - name: Install SDK components
         run: |
           yes | sdkmanager --licenses
-          sdkmanager --install "platform-tools" "cmdline-tools;latest" "platforms;android-34" "build-tools;34.0.1"
-
-      # Create a Gradle wrapper pinned to 8.4 (works with AGP 8.2.2)
+          sdkmanager --install "platform-tools" "cmdline-tools;latest" "platforms;android-34"
+          # Try preferred build-tools, then fallback
+          (sdkmanager --install "build-tools;34.0.0") || sdkmanager --install "build-tools;33.0.2"
+          # Create a Gradle wrapper pinned to 8.4 (works with AGP 8.2.2)
       - name: Create Gradle wrapper (8.4)
         run: gradle wrapper --gradle-version 8.4
 
@@ -34,6 +35,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
+        
           name: build-log
           path: build.log
 
