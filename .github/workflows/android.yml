@@ -31,9 +31,23 @@ jobs:
       - name: Create Gradle wrapper (8.6)
         run: gradle wrapper --gradle-version 8.6
 
-      - name: Build Debug APK (verbose)
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info | tee build.log
-        shell: bash
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+
+      - name: Upload APKs (any location)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/**/*.apk
+            **/*.apk
+          if-no-files-found: warn
 
       - name: Upload build log
         if: always()
@@ -52,3 +66,12 @@ jobs:
             app/build/outputs/**/*.apk
             **/*.apk
           if-no-files-found: warn
+
+      - name: Upload dependency reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports
+          path: |
+            deps.txt
+            tree.txt
