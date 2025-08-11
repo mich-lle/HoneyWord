@@ -15,5 +15,5 @@ This is a **NYT Spelling Bee–style** word game built with **Kotlin + Jetpack C
 - Words must be **4+ letters** and use only the puzzle letters.
 - Scoring: 4-letter words = 1 point; otherwise length points + **+7 pangram bonus** when a word uses all seven letters.
 
-## Notes
-- This project is not affiliated with the New York Times. Avoid their name/brand for any public app store listing.
+## Notes 
+- This project  is not affiliated with the New York Times. Avoid their name/brand for any public app store listing.
