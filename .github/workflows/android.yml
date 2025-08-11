@@ -50,7 +50,17 @@ jobs:
           name: build-log
           path: build.log
 
-      - name: Upload APKs (any location)
+      # 1) Upload the expected debug APK path
+      - name: Upload debug APK (explicit path)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+
+      # 2) Also upload ANY APKs just in case Gradle puts them elsewhere
+      - name: Upload APKs (catch-all)
         if: always()
         uses: actions/upload-artifact@v4
         with:
