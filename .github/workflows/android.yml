@@ -1,4 +1,4 @@
-name: Deep Diagnostics
+name: Deep Diagnostics v2
 on:
   workflow_dispatch:
   push:
@@ -10,17 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show repo tree (top)
+      - name: Show repo tree
         run: |
-          pwd
-          git branch --show-current
+          echo "BRANCH: $(git branch --show-current)"
           ls -la
-          echo "----- app/ -----"
-          ls -la app || true
-          echo "----- app/src/main -----"
-          ls -la app/src/main || true
-          echo "----- res/values -----"
-          ls -la app/src/main/res/values || true
+          echo "----- app -----"; ls -la app || true
+          echo "----- app/src/main -----"; ls -la app/src/main || true
+          echo "----- res/values -----"; ls -la app/src/main/res/values || true
 
       - uses: actions/setup-java@v4
         with:
@@ -55,27 +51,27 @@ jobs:
           chmod +x gradlew
           ./gradlew --version
 
-      - name: Resolve configs (help + tasks)
-        run: |
-          ./gradlew help --no-daemon 2>&1 | tee gradle-help.log
-          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon 2>&1 | tee deps.log
-
+      # Always continue even if this fails
       - name: Compile Kotlin only (capture real error)
-        run: ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee compile.log || true
-
-      - name: Zip diagnostics
+        continue-on-error: true
         run: |
-          mkdir out || true
-          cp -f gradle-help.log deps.log compile.log out/ || true
+          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee compile.log
+          echo "----- last 200 lines after compile step -----"
+          awk '/> Task :app:compileDebugKotlin/{flag=1} flag{print} /FAILURE: Build failed/{exit}' compile.log | tail -n 200 || true
+
+      - name: Gather diagnostics
+        run: |
+          mkdir -p out/java || true
+          cp -f compile.log out/ || true
           cp -f build.gradle settings.gradle gradle.properties out/ || true
           cp -f app/build.gradle app/src/main/AndroidManifest.xml out/ || true
           cp -f app/src/main/res/values/*.xml out/ || true
-          mkdir -p out/java && cp -f app/src/main/java/com/example/honeyword/MainActivity.kt out/java/ || true
-          (cd out && zip -r diagnostics.zip .)
-        shell: bash
+          cp -f app/src/main/java/com/example/honeyword/MainActivity.kt out/java/ || true
+          (cd out && zip -r diagnostics.zip .) || true
 
       - name: Upload diagnostics
         uses: actions/upload-artifact@v4
         with:
           name: diagnostics
           path: out/diagnostics.zip
+          if-no-files-found: warn
