@@ -2,7 +2,7 @@ name: Build APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ clean-start ]
 
 jobs:
   build:
@@ -26,19 +26,9 @@ jobs:
             sdkmanager --install "build-tools;$v" && echo "Using build-tools $v" && break
           done
 
-      - name: Ensure gradle.properties flags
+      - name: Ensure Gradle wrapper (8.6)
         run: |
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "kotlin.code.style=official" >> gradle.properties
-
-      # Create wrapper if missing, then make it executable
-      - name: Ensure Gradle wrapper
-        run: |
-          if [ ! -f ./gradlew ]; then
-            gradle wrapper --gradle-version 8.6
-          fi
+          if [ ! -f ./gradlew ]; then gradle wrapper --gradle-version 8.6; fi
           chmod +x gradlew
           ./gradlew --version
 
@@ -58,5 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: app/build/outputs/apk/**/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
