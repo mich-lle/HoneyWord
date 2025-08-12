@@ -41,8 +41,8 @@ jobs:
 
       # --------- DIAGNOSTIC BUILD ---------
       - name: Resource link only (show real AAPT2 error)
-        run: ./gradlew :app:processDebugResources --stacktrace --no-daemon | tee build.log
-        shell: bash
+  run: ./gradlew :app:processDebugResources --stacktrace --no-daemon 2>&1 | tee build.log
+  shell: bash
 
       - name: Dump key files (sanity)
         if: always()
