@@ -1,22 +1,14 @@
-name: Deep Diagnostics v2
+name: Build APK
 on:
   workflow_dispatch:
   push:
     branches: [ clean-start ]
 
 jobs:
-  diag:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Show repo tree
-        run: |
-          echo "BRANCH: $(git branch --show-current)"
-          ls -la
-          echo "----- app -----"; ls -la app || true
-          echo "----- app/src/main -----"; ls -la app/src/main || true
-          echo "----- res/values -----"; ls -la app/src/main/res/values || true
 
       - uses: actions/setup-java@v4
         with:
@@ -34,44 +26,36 @@ jobs:
             sdkmanager --install "build-tools;$v" && echo "Using build-tools $v" && break
           done
 
-      - name: Cat key files
-        run: |
-          echo "=== gradle.properties ==="; cat gradle.properties || true
-          echo "=== settings.gradle ==="; cat settings.gradle || true
-          echo "=== build.gradle (root) ==="; cat build.gradle || true
-          echo "=== app/build.gradle ==="; sed -n '1,200p' app/build.gradle || true
-          echo "=== AndroidManifest.xml ==="; sed -n '1,200p' app/src/main/AndroidManifest.xml || true
-          echo "=== themes.xml ==="; sed -n '1,200p' app/src/main/res/values/themes.xml || true
-          echo "=== strings.xml ==="; sed -n '1,200p' app/src/main/res/values/strings.xml || true
-          echo "=== MainActivity.kt ==="; sed -n '1,250p' app/src/main/java/com/example/honeyword/MainActivity.kt || true
-
-      - name: Ensure Gradle wrapper (8.6)
+      - name: Ensure Gradle wrapper
         run: |
           if [ ! -f ./gradlew ]; then gradle wrapper --gradle-version 8.6; fi
           chmod +x gradlew
           ./gradlew --version
 
-      # Always continue even if this fails
-      - name: Compile Kotlin only (capture real error)
-        continue-on-error: true
+      # Optional safety: make sure these flags exist (harmless if already present)
+      - name: Ensure gradle.properties flags
         run: |
-          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee compile.log
-          echo "----- last 200 lines after compile step -----"
-          awk '/> Task :app:compileDebugKotlin/{flag=1} flag{print} /FAILURE: Build failed/{exit}' compile.log | tail -n 200 || true
+          echo "org.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8" >> gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "kotlin.code.style=official" >> gradle.properties
+          echo "android.nonTransitiveRClass=true" >> gradle.properties
 
-      - name: Gather diagnostics
-        run: |
-          mkdir -p out/java || true
-          cp -f compile.log out/ || true
-          cp -f build.gradle settings.gradle gradle.properties out/ || true
-          cp -f app/build.gradle app/src/main/AndroidManifest.xml out/ || true
-          cp -f app/src/main/res/values/*.xml out/ || true
-          cp -f app/src/main/java/com/example/honeyword/MainActivity.kt out/java/ || true
-          (cd out && zip -r diagnostics.zip .) || true
+      - name: Assemble Debug APK (verbose)
+        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee build.log
+        shell: bash
 
-      - name: Upload diagnostics
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostics
-          path: out/diagnostics.zip
+          name: build-log
+          path: build.log
+
+      - name: Upload APKs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
