@@ -1,27 +1,4 @@
-- name: Resource link only (show real AAPT2 error)
-  run: ./gradlew :app:processDebugResources --stacktrace --info --no-daemon | tee build.log
-  shell: bash
-
-- name: Show outputs tree
-  if: always()
-  run: |
-    echo "=== packaged_manifests ==="
-    ls -R app/build/intermediates/packaged_manifests/debug || true
-    echo "=== merged_manifests ==="
-    ls -R app/build/intermediates/merged_manifests/debug || true
-    echo "=== processed_res ==="
-    ls -R app/build/intermediates/processed_res/debug || true
-
-- name: Upload AAPT2 intermediates + log
-  if: always()
-  uses: actions/upload-artifact@v4
-  with:
-    name: aapt2-diagnostics
-    path: |
-      build.log
-      app/build/intermediates/packaged_manifests/debug/**/*
-      app/build/intermediates/merged_manifests/debug/**/*
-      app/build/intermediates/processed_res/debug/**/*
+name: Build APK
 on:
   workflow_dispatch:
   push:
@@ -30,6 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +41,7 @@ jobs:
         run: |
           echo "=== outputs ==="
           ls -R app/build/outputs || true
-          echo "=== find any APKs ==="
+          echo "=== any APKs ==="
           find . -type f -name "*.apk" -print || true
 
       - name: Upload build log
@@ -73,7 +51,6 @@ jobs:
           name: build-log
           path: build.log
 
-      # 1) Upload the expected debug APK path
       - name: Upload debug APK (explicit path)
         if: always()
         uses: actions/upload-artifact@v4
@@ -82,7 +59,6 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
 
-      # 2) Also upload ANY APKs just in case Gradle puts them elsewhere
       - name: Upload APKs (catch-all)
         if: always()
         uses: actions/upload-artifact@v4
