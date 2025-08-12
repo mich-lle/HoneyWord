@@ -33,11 +33,17 @@ jobs:
           echo "android.enableJetifier=true" >> gradle.properties
           echo "kotlin.code.style=official" >> gradle.properties
 
-      - name: Create Gradle wrapper (8.6)
-        run: gradle wrapper --gradle-version 8.6
+      # Create wrapper if missing, then make it executable
+      - name: Ensure Gradle wrapper
+        run: |
+          if [ ! -f ./gradlew ]; then
+            gradle wrapper --gradle-version 8.6
+          fi
+          chmod +x gradlew
+          ./gradlew --version
 
       - name: Assemble Debug APK (verbose)
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon | tee build.log
+        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee build.log
         shell: bash
 
       - name: Upload build log
@@ -52,7 +58,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: |
-            app/build/outputs/apk/**/*.apk
-            **/*.apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: warn
