@@ -1,6 +1,8 @@
-name: Build APK (diagnostic)
+name: Build APK
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
@@ -24,20 +26,18 @@ jobs:
             sdkmanager --install "build-tools;$v" && echo "Using build-tools $v" && break
           done
 
-      - name: Ensure gradle.properties (safety)
+      - name: Ensure gradle.properties flags
         run: |
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> gradle.properties
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           echo "kotlin.code.style=official" >> gradle.properties
-          echo "android.nonTransitiveRClass=true" >> gradle.properties
-          cat gradle.properties
 
       - name: Create Gradle wrapper (8.6)
         run: gradle wrapper --gradle-version 8.6
 
-      - name: Resource link only (capture real AAPT2 error)
-        run: ./gradlew :app:processDebugResources --stacktrace --no-daemon 2>&1 | tee build.log
+      - name: Assemble Debug APK (verbose)
+        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon | tee build.log
         shell: bash
 
       - name: Upload build log
@@ -46,3 +46,13 @@ jobs:
         with:
           name: build-log
           path: build.log
+
+      - name: Upload APKs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/**/*.apk
+            **/*.apk
+          if-no-files-found: warn
