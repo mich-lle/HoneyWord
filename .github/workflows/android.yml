@@ -1,8 +1,6 @@
-name: Build APK
+name: Build APK (diagnostic)
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build:
@@ -26,8 +24,7 @@ jobs:
             sdkmanager --install "build-tools;$v" && echo "Using build-tools $v" && break
           done
 
-      # Ensure AndroidX flags exist even if the repo copy is missing
-      - name: Ensure gradle.properties
+      - name: Ensure gradle.properties (safety)
         run: |
           echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> gradle.properties
           echo "android.useAndroidX=true" >> gradle.properties
@@ -39,28 +36,13 @@ jobs:
       - name: Create Gradle wrapper (8.6)
         run: gradle wrapper --gradle-version 8.6
 
-      # --------- DIAGNOSTIC BUILD ---------
-      - name: Resource link only (show real AAPT2 error)
-  run: ./gradlew :app:processDebugResources --stacktrace --no-daemon 2>&1 | tee build.log
-  shell: bash
+      - name: Resource link only (capture real AAPT2 error)
+        run: ./gradlew :app:processDebugResources --stacktrace --no-daemon 2>&1 | tee build.log
+        shell: bash
 
-      - name: Dump key files (sanity)
-        if: always()
-        run: |
-          echo "=== gradle.properties ==="; cat gradle.properties || true
-          echo "=== AndroidManifest.xml ==="; sed -n '1,200p' app/src/main/AndroidManifest.xml || true
-          echo "=== values/strings.xml ==="; cat app/src/main/res/values/strings.xml || true
-          echo "=== values/themes.xml ==="; cat app/src/main/res/values/themes.xml || true
-          echo "=== merged manifest ==="; sed -n '1,200p' app/build/intermediates/merged_manifests/debug/AndroidManifest.xml || true
-          echo "=== outputs tree ==="; ls -R app/build/outputs || true
-
-      - name: Upload diagnostics
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aapt2-diagnostics
-          path: |
-            build.log
-            app/build/intermediates/merged_manifests/debug/AndroidManifest.xml
-            app/build/outputs/**
-          if-no-files-found: warn
+          name: build-log
+          path: build.log
