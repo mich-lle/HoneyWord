@@ -1,14 +1,26 @@
-name: Build APK
+name: Deep Diagnostics
 on:
   workflow_dispatch:
   push:
     branches: [ clean-start ]
 
 jobs:
-  build:
+  diag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Show repo tree (top)
+        run: |
+          pwd
+          git branch --show-current
+          ls -la
+          echo "----- app/ -----"
+          ls -la app || true
+          echo "----- app/src/main -----"
+          ls -la app/src/main || true
+          echo "----- res/values -----"
+          ls -la app/src/main/res/values || true
 
       - uses: actions/setup-java@v4
         with:
@@ -26,27 +38,44 @@ jobs:
             sdkmanager --install "build-tools;$v" && echo "Using build-tools $v" && break
           done
 
+      - name: Cat key files
+        run: |
+          echo "=== gradle.properties ==="; cat gradle.properties || true
+          echo "=== settings.gradle ==="; cat settings.gradle || true
+          echo "=== build.gradle (root) ==="; cat build.gradle || true
+          echo "=== app/build.gradle ==="; sed -n '1,200p' app/build.gradle || true
+          echo "=== AndroidManifest.xml ==="; sed -n '1,200p' app/src/main/AndroidManifest.xml || true
+          echo "=== themes.xml ==="; sed -n '1,200p' app/src/main/res/values/themes.xml || true
+          echo "=== strings.xml ==="; sed -n '1,200p' app/src/main/res/values/strings.xml || true
+          echo "=== MainActivity.kt ==="; sed -n '1,250p' app/src/main/java/com/example/honeyword/MainActivity.kt || true
+
       - name: Ensure Gradle wrapper (8.6)
         run: |
           if [ ! -f ./gradlew ]; then gradle wrapper --gradle-version 8.6; fi
           chmod +x gradlew
           ./gradlew --version
 
-      - name: Assemble Debug APK (verbose)
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee build.log
+      - name: Resolve configs (help + tasks)
+        run: |
+          ./gradlew help --no-daemon 2>&1 | tee gradle-help.log
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath --no-daemon 2>&1 | tee deps.log
+
+      - name: Compile Kotlin only (capture real error)
+        run: ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon 2>&1 | tee compile.log || true
+
+      - name: Zip diagnostics
+        run: |
+          mkdir out || true
+          cp -f gradle-help.log deps.log compile.log out/ || true
+          cp -f build.gradle settings.gradle gradle.properties out/ || true
+          cp -f app/build.gradle app/src/main/AndroidManifest.xml out/ || true
+          cp -f app/src/main/res/values/*.xml out/ || true
+          mkdir -p out/java && cp -f app/src/main/java/com/example/honeyword/MainActivity.kt out/java/ || true
+          (cd out && zip -r diagnostics.zip .)
         shell: bash
 
-      - name: Upload build log
-        if: always()
+      - name: Upload diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build.log
-
-      - name: Upload APKs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: apks
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
+          name: diagnostics
+          path: out/diagnostics.zip
