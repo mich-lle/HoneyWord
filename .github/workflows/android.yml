@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -29,20 +28,18 @@ jobs:
             fi
           done
 
+      - name: Ensure AndroidX enabled
+        run: |
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          cat gradle.properties
+
       - name: Create Gradle wrapper (8.6)
         run: gradle wrapper --gradle-version 8.6
 
       - name: Build Debug APK (verbose)
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon | tee build.log
+        run: ./gradlew clean :app:assembleDebug --stacktrace --info | tee build.log
         shell: bash
-
-      - name: Show outputs tree
-        if: always()
-        run: |
-          echo "=== outputs ==="
-          ls -R app/build/outputs || true
-          echo "=== any APKs ==="
-          find . -type f -name "*.apk" -print || true
 
       - name: Upload build log
         if: always()
@@ -51,18 +48,13 @@ jobs:
           name: build-log
           path: build.log
 
-      - name: Upload debug APK (explicit path)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
-
-      - name: Upload APKs (catch-all)
+      - name: Upload APKs (any location)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: apks
-          path: "**/*.apk"
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/**/*.apk
+            **/*.apk
           if-no-files-found: warn
