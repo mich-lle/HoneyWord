@@ -5,8 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,9 +22,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                // Force a contrasting background so content can’t “disappear”
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AppScreenProbe()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFFFF3C4)), // pale honey so it can't "blend in"
+                    contentAlignment = Alignment.Center
+                ) {
+                    HelloProbe()
                 }
             }
         }
@@ -28,23 +36,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppScreenProbe() {
-    var taps by remember { mutableStateOf(0) }
-
-    Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Honeyword") }) }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(Color(0xFFFFF3C4)) // pale honey color for contrast
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-        ) {
-            Text("If you can read this, UI is OK ✅", fontSize = 20.sp)
-            Button(onClick = { taps++ }) { Text("Tap me ($taps)") }
-        }
+private fun HelloProbe() {
+    val taps = remember { mutableStateOf(0) }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(24.dp)
+    ) {
+        Text("If you can read this, UI is OK ✅", fontSize = 20.sp)
+        Button(onClick = { taps.value++ }) { Text("Tap me (${taps.value})") }
     }
 }
