@@ -8,8 +8,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,7 +19,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -39,46 +40,97 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun StarWithSlotsScreen() {
-    var tapped by remember { mutableStateOf("Tap a letter") }
+    var tapped by remember { mutableStateOf("Welcome to Starrable — tap letters") }
+    var showRules by remember { mutableStateOf(false) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(White),
-        contentAlignment = Alignment.Center
+            .background(White)
     ) {
-        // Square playfield
+        // Simple top bar with title + Rules button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Starrable", color = Blue, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = { showRules = true }) {
+                Text("Rules")
+            }
+        }
+
+        // Playfield area
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .aspectRatio(1f)
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center
         ) {
-            // The star lines behind the slots
-            StarOfDavid(
-                modifier = Modifier.fillMaxSize(),
-                lineColor = Blue,
-                lineWidthDp = 6f
-            )
+            // Square playfield
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .aspectRatio(1f)
+            ) {
+                // The star lines behind the slots
+                StarOfDavid(
+                    modifier = Modifier.fillMaxSize(),
+                    lineColor = Blue,
+                    lineWidthDp = 6f
+                )
 
-            // The 7 tappable letter slots (center + 6 around)
-            LetterSlotsOverlay(
-                size = 60.dp,          // slot diameter
-                ringRadiusRatio = 0.36f, // distance of outer 6 from center (as fraction of box size)
-                labels = listOf("A", "B", "C", "D", "E", "F"), // ring letters
-                centerLabel = "G",     // center letter (required)
-                onTap = { tapped = "Tapped: $it" }
-            )
+                // The 7 tappable letter slots (center + 6 around)
+                LetterSlotsOverlay(
+                    size = 60.dp,           // slot diameter
+                    ringRadiusRatio = 0.36f, // distance of outer 6 from center (fraction of box size)
+                    labels = listOf("A", "B", "C", "D", "E", "F"), // ring letters
+                    centerLabel = "G",      // center letter (required)
+                    onTap = { tapped = "Tapped: $it" }
+                )
+            }
         }
 
         // Debug/status text at bottom
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
+                .fillMaxWidth()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(tapped, color = Blue)
         }
     }
+
+    if (showRules) {
+        RulesDialog(onDismiss = { showRules = false })
+    }
+}
+
+/**
+ * In-app rules using the new terminology.
+ * Keeps it lightweight; no navigation changes required.
+ */
+@Composable
+private fun RulesDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK") }
+        },
+        title = { Text("How to Play") },
+        text = {
+            Text(
+                "• Form words of 4+ letters\n" +
+                "• Use only the 7 letters shown\n" +
+                "• Every word must include the center letter\n" +
+                "• Letters can repeat\n\n" +
+                "Starweave: uses all 7 letters at least once ✨"
+            )
+        }
+    )
 }
 
 /**
