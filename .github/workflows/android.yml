@@ -32,18 +32,23 @@ jobs:
           chmod +x gradlew
           ./gradlew --version
 
-      # Optional safety: make sure these flags exist (harmless if already present)
       - name: Ensure gradle.properties flags
         run: |
-          echo "org.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "kotlin.code.style=official" >> gradle.properties
-          echo "android.nonTransitiveRClass=true" >> gradle.properties
+          {
+            echo "org.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8"
+            echo "android.useAndroidX=true"
+            echo "android.enableJetifier=true"
+            echo "kotlin.code.style=official"
+            echo "android.nonTransitiveRClass=true"
+          } >> gradle.properties
+          echo "----- gradle.properties -----"
+          cat gradle.properties
 
       - name: Assemble Debug APK (verbose)
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee build.log
         shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew clean :app:assembleDebug --stacktrace --info --no-daemon 2>&1 | tee build.log
 
       - name: Upload build log
         if: always()
