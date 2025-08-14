@@ -34,7 +34,7 @@ private val Purple = Color(0xFF7A2B8D)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { StarWithSlotsScreen() } }
+        setContent { com.example.honeyword.ui.theme.HoneywordTheme { StarWithSlotsScreen() } }
     }
 }
 
