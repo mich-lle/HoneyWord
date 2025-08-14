@@ -1,14 +1,11 @@
 <resources>
-    <!-- Primary palette -->
-    <color name="purple_200">#BB86FC</color>
-    <color name="purple_500">#6200EE</color>
-    <color name="purple_700">#3700B3</color>
+    <color name="star_blue">#0038B8</color>
+    <color name="star_purple">#7A2B8D</color>
+    <color name="star_white">#FFFFFF</color>
 
-    <!-- Secondary palette -->
-    <color name="teal_200">#03DAC5</color>
-    <color name="teal_700">#018786</color>
-
-    <!-- Standard -->
-    <color name="black">#000000</color>
-    <color name="white">#FFFFFF</color>
+    <!-- optional surfaces -->
+    <color name="star_background">#FFFFFF</color>
+    <color name="star_surface">#FFFFFF</color>
+    <color name="star_onPrimary">#FFFFFF</color>
+    <color name="star_onBackground">#1B1B1F</color>
 </resources>
